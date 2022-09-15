@@ -43,11 +43,9 @@ auther:milkcandy
     * 此局域网包括三台主机：Debian 10(gateway) | xp-victim-2 | debian-victim-2
     * 先配置`Debian 10(gateway)`的网络
     ![](img/enterprise_network-debian-gw.png)
-    </br>
     * 配置`xp-victim-2`的网络
     ![](img/enterprise_network-xp_2.png)
     ![](img/enterprise_network-xp.png)
-    </br>
     * 配置`debian-victim-2`的网络
     ![](img/enterprise_network-debian_2.png)
     ![](img/enterprise_network-debian.png)
@@ -59,19 +57,15 @@ auther:milkcandy
 ![](img/xp-victim-2-ip.png)
 `debian-victim-2：`
 ![](img/debian-victim-2-ip.png)
-</br>
     * 测试内网连通性：
     先关闭`xp-victim-2`的防火墙：
     ![](img/xp-shutdownfirewall.png)
-    </br>
         * `Debian 10(gateway)`和`xp-victim-2`之间的连通性：
     ![](img/debian-gw-ping-xp-2.png)
     ![](img/xp-2-ping-debian-gw.png)
-    </br>
         * `Debian 10(gateway)`和`debian-victim-2`之间的连通性：
     ![](img/debian-gw-ping-debian-2.png)
     ![](img/debian-2-ping-debian-gw.png)
-    </br>
         * `debian-victim-2`和`xp-victim-2`之间的连通性：
     ![](img/xp-2-ping-debian-2.png)
     ![](img/debian-2-ping-xp-2.png)
