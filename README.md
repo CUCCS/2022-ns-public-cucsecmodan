@@ -49,7 +49,7 @@ auther:milkcandy
     * 配置`debian-victim-2`的网络
     ![](img/enterprise_network-debian_2.png)
     ![](img/enterprise_network-debian.png)
-    </br>
+    
     * 配置好网络后，可以发现虚拟机自动分配好了内网地址，如下图所示：
 `Debian 10(gateway):`
 ![](img/debian-gw-ip.png)
@@ -57,39 +57,39 @@ auther:milkcandy
 ![](img/xp-victim-2-ip.png)
 `debian-victim-2：`
 ![](img/debian-victim-2-ip.png)
-    * 测试内网连通性：
+* 测试内网连通性：
     先关闭`xp-victim-2`的防火墙：
     ![](img/xp-shutdownfirewall.png)
-        * `Debian 10(gateway)`和`xp-victim-2`之间的连通性：
+    * `Debian 10(gateway)`和`xp-victim-2`之间的连通性：
     ![](img/debian-gw-ping-xp-2.png)
     ![](img/xp-2-ping-debian-gw.png)
-        * `Debian 10(gateway)`和`debian-victim-2`之间的连通性：
+    * `Debian 10(gateway)`和`debian-victim-2`之间的连通性：
     ![](img/debian-gw-ping-debian-2.png)
     ![](img/debian-2-ping-debian-gw.png)
-        * `debian-victim-2`和`xp-victim-2`之间的连通性：
+    * `debian-victim-2`和`xp-victim-2`之间的连通性：
     ![](img/xp-2-ping-debian-2.png)
     ![](img/debian-2-ping-xp-2.png)
-    </br>
+    
 
 * 全局网络配置
     * 设置全局Nat network
-        ![](img/natnetwork.png)
+    ![](img/natnetwork.png)
     * 给debian(gateway)添加Nat
-        ![](img/bebian-gw-nat.png)
+    ![](img/bebian-gw-nat.png)
     * 给Kali-Attacker添加Nat
-        ![](img/kali-attacker-nat.png)
+    ![](img/kali-attacker-nat.png)
 
 * 网络连接测试
 ![](img/network_all.png)
     * 靶机可以直接访问攻击者主机
     ![](img/debian-2-ping-kali-attacker.png)
-    </br>
+    
     * 攻击者主机无法直接访问靶机
     ![](img/kali-attacker-ping-debian-2.png)
-    </br>
+   
     * 网关可以直接访问攻击者主机和靶机
     ![](img/debian-gw-ping-others.png)
-    </br>
+    
     * 靶机的所有对外上下行流量必须经过网关
     在Debian10(GateWay)上安装tshark
     ```bash
@@ -104,7 +104,7 @@ auther:milkcandy
     #监控intnet2的所有流量
     ```
     ![](img/intnet1.png)
-     ![](img/intnet2.png)
+    ![](img/intnet2.png)
     * 所有节点均可以访问互联网
     经测试，所以节点均可ping通www.baidu.com，即所有节点均可访问互联网。
 ## 出现的问题
@@ -121,5 +121,11 @@ ssh root@192.168.56.113
 ![](img/successfully_ssh.png)
 ## 参考资料
 [VirtualBox 多重加载](https://expoli.tech/articles/2021/06/07/1623066136894.html)
+
+</br>
+
 [VirtualBox 配置网络](https://www-nakivo-com.translate.goog/blog/virtualbox-network-setting-guide/?_x_tr_sl=en&_x_tr_tl=zh-CN&_x_tr_hl=zh-CN&_x_tr_pto=sc)
+
+</br>
+
 [tshark 使用语法](https://www.wireshark.org/docs/man-pages/tshark.html)
