@@ -158,7 +158,7 @@ root@kali:~# tcpdump -i eth0 -w /home/kali/Desktop/test.pcap
 在桌面上我们可以看到生成的test.pcap,用系统自带的解析软件可以打开分析。
 ![](imgs/test_pcap.png)
 观察发出请求主机上的命令行，发现并没有成功的通信，说明这个毒化是不完整的，能够抓到包，但是不能还原原有的正常通信，只有挂起（ctrl+z）或者结束欺骗（ctrl+c）以后才能正常上网：
-![](imgs/ping_failure.png)
+![](imgs/ping_failure.png)  
 在投毒前打开Kali-Attackter的流量转发，目的是让攻击者（中间人）转发收到的包到真正的目的地址，攻击者成为真正的中间人：
 ```bash
 root@kali:~# echo 1 > /proc/sys/net/ipv4/ip_forward
@@ -173,7 +173,7 @@ root@kali:~# echo 1 > /proc/sys/net/ipv4/ip_forward
 root@kali:~# echo 1 > /proc/sys/net/ipv4/ip_forward
 ```
 ### 参考资料
-[Linux实现的ARP缓存老化时间原理解析](https://developer.aliyun.com/article/494130?spm=a2c6h.13813017.content3.1.707863e8MIWhJn)
-[韩涛同学的实验报告](https://github.com/CUCCS/2022-ns-public-HantaoGG/tree/chap0x04/chap0x04#%E5%AE%9E%E9%AA%8C2-%E6%89%8B%E5%B7%A5%E5%8D%95%E6%AD%A5%E6%AF%92%E5%8C%96%E7%9B%AE%E6%A0%87%E4%B8%BB%E6%9C%BAarp%E7%BC%93%E5%AD%98)
-[arpspoof使用教程](https://blog.csdn.net/qq_54780911/article/details/121891827)
-[arp流量转发实验](https://blog.csdn.net/fengzhantian/article/details/81346552)
+[Linux实现的ARP缓存老化时间原理解析](https://developer.aliyun.com/article/494130?spm=a2c6h.13813017.content3.1.707863e8MIWhJn)  
+[韩涛同学的实验报告](https://github.com/CUCCS/2022-ns-public-HantaoGG/tree/chap0x04/chap0x04#%E5%AE%9E%E9%AA%8C2-%E6%89%8B%E5%B7%A5%E5%8D%95%E6%AD%A5%E6%AF%92%E5%8C%96%E7%9B%AE%E6%A0%87%E4%B8%BB%E6%9C%BAarp%E7%BC%93%E5%AD%98)  
+[arpspoof使用教程](https://blog.csdn.net/qq_54780911/article/details/121891827)  
+[arp流量转发实验](https://blog.csdn.net/fengzhantian/article/details/81346552)  
