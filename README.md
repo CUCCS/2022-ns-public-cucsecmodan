@@ -3,8 +3,10 @@
 -----
 
 ## 实验内容
-* 检测局域网中的异常终端
-* 手工单步“毒化”目标主机的 ARP 缓存
+- [x] 检测局域网中的异常终端
+- [x] 手工单步“毒化”目标主机的 ARP 缓存
+- [x] 使用自动化工具完成ARP投毒劫持实验
+- [ ] 基于scapy编写ARP投毒劫持工具
 
 ### 实验过程
 #### 实验环境搭建
@@ -123,8 +125,55 @@ ip neigh
 ```
 ![](imgs/gw_reset.png)
 
+#### 实验三 使用自动化工具完成ARP投毒劫持实验
+
+投毒前，查看Kali-Victim的arp缓存表：
+![](imgs/auto_arp_kalivic.png)
+查看网关Debian-gw的arp缓存表：
+![](imgs/auto_arp_debiangw.png)
+
+投毒：
+* 欺骗Kali-victim-1(172.16.111.102)说我Kali-Attackter-1(172.16.111.110)是Debian-gw（172.16.111.1）
+```bash
+root@kali:~# arpspoof -i eth0 -t 172.16.111.102 172.16.111.1
+```
+* 欺骗Debian-gw（172.16.111.1）说我Kali-Attackter-1(172.16.111.110)是Kali-victim-1(172.16.111.102)
+
+```bash
+root@kali:~# arpspoof -i eth0 -t 172.16.111.1 172.16.111.102
+```
+
+再次查看Kali-victim-1和debian-gw的arp缓存表：
+![](imgs/auto_kalivic_gwchange.png)  
+* 从上图可以看到Kali-Attackter成功毒化了Kali-victim-1的arp缓存表，将Debian-gw的Mac地址换成了Kali-Attackter的Mac地址。
+![](imgs/auto_debiangw_kalivicchange.png)  
+* 从上图可以看到Kali-Attackter成功毒化了Debian-gw的arp缓存表，将Kali-victim-1的Mac地址换成了Kali-Attackter的Mac地址。
+
+尝试抓包：
+
+```bash
+root@kali:~# tcpdump -i eth0 -w /home/kali/Desktop/test.pcap
+```
+![](imgs/tcpdump_test.png)
+在桌面上我们可以看到生成的test.pcap,用系统自带的解析软件可以打开分析。
+![](imgs/test_pcap.png)
+观察发出请求主机上的命令行，发现并没有成功的通信，说明这个毒化是不完整的，能够抓到包，但是不能还原原有的正常通信，只有挂起（ctrl+z）或者结束欺骗（ctrl+c）以后才能正常上网：
+![](imgs/ping_failure.png)
+打开Kali-Attackter的流量转发，目的是让攻击者（中间人）转发收到的包到真正的目的地址：
+```bash
+root@kali:~# echo 1 > /proc/sys/net/ipv4/ip_forward
+```
+![](imgs/capture_success.png)
 ### 实验思考
 * 攻击者通过改变受害者arp缓存表里的默认网关Mac地址，实现arp投毒，所有需要经过默认网关的数据流量都会传输到攻击者主机。
+* 通过kali-arpspoof工具进行中间人arp投毒（自动化投毒工具），可以让被攻击主机不能正常访问网络，且相关的访问请求都可以被攻击主机捕获，使用ctrl+z挂起欺骗进程，使用ctrl+c终止欺骗进程，此时arp缓存表很快会自动恢复，被攻击主机可以正常访问网络。
+![](imgs/q1.png)
+* 通过kali-arpspoof工具进行中间人arp投毒（自动化投毒工具），攻击者提前开启流量转发，可以做到隐秘的截取信息不容易被检测出来，在投毒前执行以下代码段：
+```bash
+root@kali:~# echo 1 > /proc/sys/net/ipv4/ip_forward
+```
 ### 参考资料
 [Linux实现的ARP缓存老化时间原理解析](https://developer.aliyun.com/article/494130?spm=a2c6h.13813017.content3.1.707863e8MIWhJn)
 [韩涛同学的实验报告](https://github.com/CUCCS/2022-ns-public-HantaoGG/tree/chap0x04/chap0x04#%E5%AE%9E%E9%AA%8C2-%E6%89%8B%E5%B7%A5%E5%8D%95%E6%AD%A5%E6%AF%92%E5%8C%96%E7%9B%AE%E6%A0%87%E4%B8%BB%E6%9C%BAarp%E7%BC%93%E5%AD%98)
+[arpspoof使用教程](https://blog.csdn.net/qq_54780911/article/details/121891827)
+[arp流量转发实验](https://blog.csdn.net/fengzhantian/article/details/81346552)
