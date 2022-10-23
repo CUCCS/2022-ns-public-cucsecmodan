@@ -250,6 +250,78 @@ nmap -sF 172.16.111.102
 
 -----
 
+
+#### TCP Null scan
+* 扫描方法原理：FIN 扫描利用 TCP 数据包内的 FIN 标志以及要在服务器上连接的端口号。原理图如下：  
+![](imgs/tcp_null_open_principle.png)
+![](imgs/tcp_null_closed_principle.png)
+![](imgs/tcp_null_filtered_principle.png)
+* 实验抓包结果（包括被测试IP的端口状态模拟方法）：  
+<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>  
+
+```bash
+#在被攻击主机上开启端口,默认开放的是8000端口
+python3 -m http.server
+
+#在被攻击主机上开启抓包
+tcpdump -i eth0 -w null.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_null_scan.py
+```
+
+观察抓到的包：
+![](imgs/tcp_null_open_pcap.png) 
+
+观察执行过程：
+![](imgs/tcp_null_open_py.png)  
+以上说明端口可能为 `开放` | `过滤` | `关闭` 状态。
+<strong>指定端口 `关闭` 状态模拟：</strong> 
+默认情况下8000端口处于未打开状态，这时进行以上两种操作，可以得到8000端口此时的状态：
+
+```bash
+#在被攻击者主机上抓包
+tcpdump -i eth0 -w null_close.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_null_scan.py
+```
+![](imgs/tcp_null_close_pcap.png)
+![](imgs/tcp_null_close_py.png)
+
+* 实验代码：
+
+```python
+#! /usr/bin/python
+import logging
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+from scapy.all import *
+
+dst_ip = "172.16.111.102"
+src_port = RandShort()
+dst_port=8000
+
+null_scan_resp = sr1(IP(dst=dst_ip)/TCP(dport=dst_port,flags=""),timeout=10)
+if null_scan_resp is None:
+    print ("Open|Filtered")
+elif(null_scan_resp.haslayer(TCP)):
+    if(null_scan_resp.getlayer(TCP).flags == 0x14):
+        print ("Closed")
+elif(null_scan_resp.haslayer(ICMP)):
+    if(int(null_scan_resp.getlayer(ICMP).type)==3 and int(null_scan_resp.getlayer(ICMP).code) in [1,2,3,9,10,13]):
+        print ("Filtered")
+```
+* nmap复刻：
+```python
+nmap -sN 172.16.111.102
+```
+<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>
+![](imgs/tcp_null_open_nmap.png)
+<strong>指定端口 `关闭` 状态模拟：</strong> 
+![](imgs/tcp_null_closed_nmao.png)  
+
+-----
+
 ## 参考资料
 [tcpdump抓包命令详解](https://zhuanlan.zhihu.com/p/96143656)  
 [Port scanning using Scapy](https://resources.infosecinstitute.com/topic/port-scanning-using-scapy/)  
