@@ -24,9 +24,9 @@
     * TCP Xmas scan / TCP fin scan / TCP null scan
     * UDP scan
 - [ ] 上述每种扫描技术的实现测试均需要测试端口状态为：`开放`、`关闭`和`过滤`状态时的程序执行结构。
-- [ ] 提供每一次扫描测试的抓包结果并分析与课本中的扫描方法原理是否相符？如果不同，试分析原因。
-- [ ] 在实验报告中详细说明实验的网络环境拓扑、被测试IP的端口状态是如何被模拟的。
-- [ ] 复刻`nmap`的上述扫描技术实现的命令行参数开关。
+- [x] 提供每一次扫描测试的抓包结果并分析与课本中的扫描方法原理是否相符？如果不同，试分析原因。
+- [x] 在实验报告中详细说明实验的网络环境拓扑、被测试IP的端口状态是如何被模拟的。
+- [x] 复刻`nmap`的上述扫描技术实现的命令行参数开关。
 ## 实验过程
 ### 引言
 端口扫描技术是对主机状态的详细信息进行探测的技术。
@@ -252,7 +252,7 @@ nmap -sF 172.16.111.102
 
 
 #### TCP Null scan
-* 扫描方法原理：FIN 扫描利用 TCP 数据包内的 FIN 标志以及要在服务器上连接的端口号。原理图如下：  
+* 扫描方法原理：在空扫描中，TCP 数据包内未设置任何标志。TCP 数据包仅与端口号一起发送到服务器。如果服务器未向 NULL 扫描数据包发送任何响应，则该特定端口处于打开状态。如果服务器使用 TCP 数据包中设置的 RST 标志进行响应，则服务器上的端口将关闭。原理图如下：  
 ![](imgs/tcp_null_open_principle.png)
 ![](imgs/tcp_null_closed_principle.png)
 ![](imgs/tcp_null_filtered_principle.png)
@@ -321,8 +321,91 @@ nmap -sN 172.16.111.102
 ![](imgs/tcp_null_closed_nmao.png)  
 
 -----
+#### UDP scan
+* 扫描方法原理：FIN 扫描利用 TCP 数据包内的 FIN 标志以及要在服务器上连接的端口号。原理图如下：  
+![](imgs/udp_open_principle.png)
+![](imgs/udp_close_principle.png)
+![](imgs/udp_filter_principle.png)
+* 实验抓包结果（包括被测试IP的端口状态模拟方法），不小心误删了原有的被攻击者主机，重新注册了ip为172.16.111.115的主机：  
+<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>  
+
+```bash
+#在被攻击主机上开启端口9999
+nc -l -u -p 9999
+
+#在被攻击主机上开启抓包
+tcpdump -i eth0 -w udp_open.pcap
+
+#在攻击者主机上执行发包命令
+python udp_scan.py -t 172.16.111.115 -p 9999
+```
+
+观察抓到的包：
+![](imgs/udp_open_pcap2.png) 
+
+观察执行过程：
+![](imgs/udp_open_py.png)  
+以上说明端口可能为 `开放` | `过滤` | `关闭` 状态。
+<strong>指定端口 `关闭` 状态模拟：</strong> 
+
+```bash
+#在被攻击者主机上抓包
+tcpdump -i eth0 -w udp_open.pcap
+
+#在攻击者主机上执行发包命令
+python udp_scan.py -t 172.16.111.115 -p 9999
+```
+![](imgs/udp_close_pcap.png)
+![](imgs/udp_close_py.png)
+
+* 实验代码：
+
+```python
+import argparse
+from scapy.all import *
+def print_ports(port, state):
+	print("%s | %s" % (port, state))
+
+def udp_scan(target, ports):
+	print("udp scan on, %s with ports %s" % (target, ports))
+	for port in ports:
+		pkt = sr1(IP(dst=target)/UDP(sport=port, dport=port)/'helloworld', timeout=2, verbose=0)
+		if pkt == None:
+			print_ports(port, "Open / filtered")
+		else:
+			if pkt.haslayer(ICMP):
+				print_ports(port, "Closed")
+			elif pkt.haslayer(UDP):
+				print_ports(port, "Open / filtered")
+			else:
+				print_ports(port, "Unknown")
+				print(pkt.summary())
+parser = argparse.ArgumentParser("Port scanner using Scapy")
+parser.add_argument("-t", "--target", help="Specify target IP", required=True)
+parser.add_argument("-p", "--ports", type=int, nargs="+", help="Specify ports (21 23 80 ...)")
+args = parser.parse_args()
+target = args.target
+if args.ports:
+	ports = args.ports
+else:
+	# default port range
+	ports = range(1, 1024)
+udp_scan(target,ports)
+```
+* nmap复刻：
+```python
+nmap -sU 172.16.111.115
+```
+<!-- <strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>
+![](imgs/tcp_null_open_nmap.png)
+<strong>指定端口 `关闭` 状态模拟：</strong> 
+![](imgs/tcp_null_closed_nmao.png)   -->
+不知道为什么，nmap发包最终返回的都是关闭状态：
+![](imgs/udp_close_nmap_py.png)
 
 ## 参考资料
 [tcpdump抓包命令详解](https://zhuanlan.zhihu.com/p/96143656)  
 [Port scanning using Scapy](https://resources.infosecinstitute.com/topic/port-scanning-using-scapy/)  
-[使用%在python中打印字符串变量](https://www.delftstack.com/zh/howto/python/python-print-string-and-variable/#:~:text=%E5%9C%A8%20Python%202.7%20%E4%B8%AD%E6%89%93%E5%8D%B0%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E5%8F%98%E9%87%8F%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E6%96%B9%E6%B3%95%E6%98%AF%E4%BD%BF%E7%94%A8%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E8%BF%90%E7%AE%97%E7%AC%A6%E3%80%82,%E5%9C%A8%E8%BF%99%E7%A7%8D%E6%96%B9%E6%B3%95%E4%B8%AD%EF%BC%8C%20print%20%E8%AF%AD%E5%8F%A5%E5%9C%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E4%BD%BF%E7%94%A8%20%25%20%E8%BF%90%E7%AE%97%E7%AC%A6%E3%80%82)  
+[scapy port scanner](https://github.com/cptpugwash/Scapy-port-scanner/blob/master/port_scanner.py)  
+[使用%在python中打印字符串变量](https://www.delftstack.com/zh/howto/python/python-print-string-and-variable/#:~:text=%E5%9C%A8%20Python%202.7%20%E4%B8%AD%E6%89%93%E5%8D%B0%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%92%8C%E5%8F%98%E9%87%8F%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E6%96%B9%E6%B3%95%E6%98%AF%E4%BD%BF%E7%94%A8%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%A0%BC%E5%BC%8F%E8%BF%90%E7%AE%97%E7%AC%A6%E3%80%82,%E5%9C%A8%E8%BF%99%E7%A7%8D%E6%96%B9%E6%B3%95%E4%B8%AD%EF%BC%8C%20print%20%E8%AF%AD%E5%8F%A5%E5%9C%A8%E6%B6%88%E6%81%AF%E4%B8%AD%E4%BD%BF%E7%94%A8%20%25%20%E8%BF%90%E7%AE%97%E7%AC%A6%E3%80%82)   
+[argparse 命令行选项、参数和子命令解析器](https://docs.python.org/zh-cn/3/library/argparse.html)  
