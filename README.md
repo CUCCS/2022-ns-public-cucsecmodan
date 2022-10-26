@@ -15,7 +15,7 @@
 * 宿主机：win11
 * 编程环境：python + scapy
 * 实验拓扑：  
-![](imgs/structure.png)
+![](imgs/structure.png)  
 
 ## 实验要求
 - [x] 禁止探测互联网上的 IP ，严格遵守网络安全相关法律法规。
@@ -31,8 +31,8 @@
 ### 引言
 端口扫描技术是对主机状态的详细信息进行探测的技术。
 #### TCP connect scan 
-* 扫描方法原理：客户端与服务器建立 TCP 连接要进行三次握手，如果进行了一次成功的三次握手，则说明端口开放。原理图如下：    
-![](imgs/tcp_connect_principle.png)   
+* 扫描方法原理：客户端与服务器建立 TCP 连接要进行三次握手，如果进行了一次成功的三次握手，则说明端口开放。原理图如下：  
+![](imgs/tcp_connect_principle.png)      
 ![](imgs/tcp_stealth_close_principle.png)  
 * 实验抓包结果（包括被测试IP的端口状态模拟方法）：
 * 实验代码：
@@ -42,9 +42,10 @@
  
 #### TCP stealth scan
 * 扫描方法原理：客户端发送一个 TCP 数据包，其中设置了 SYN 标志和要连接到的端口号。如果端口处于打开状态，则服务器将使用 TCP 数据包内的 SYN 和 ACK 标志进行响应。但这次客户端在 TCP 数据包中发送 RST 标志，而不是 RST+ACK。此技术用于避免防火墙检测到端口扫描。原理图如下：  
-![](imgs/tcp_stealth_principle.png)
-![](imgs/tcp_stealth_close_principle.png)
-* 实验抓包结果（包括被测试IP的端口状态模拟方法）：  
+![](imgs/tcp_stealth_principle.png)   
+![](imgs/tcp_stealth_close_principle.png)  
+* 实验抓包结果（包括被测试IP的端口状态模拟方法）：
+
 <strong>指定端口 `开放` 状态模拟：</strong>  
 
 ```bash
@@ -61,15 +62,39 @@ tcpdump -i eth0 -w tcpstealth.pcap
 python tcp_stealth.py
 ```
 
-观察抓到的包：
-![](imgs/tcp_stealth_open_pcap.png)
-观察执行过程：
-![](imgs/tcp_stealth_open_py.png)
+观察抓到的包：  
+![](imgs/tcp_stealth_open_pcap.png)  
+观察执行过程： 
+![](imgs/tcp_stealth_open_py.png)  
 以上说明端口为 `开放` 状态。
 
-<strong>指定端口 `关闭` 状态模拟：</strong>
+<strong>指定端口 `关闭` 状态模拟：</strong>  
+默认情况下8000端口处于未打开状态：
+```bash
+#在被攻击主机上开启抓包
+tcpdump -i eth0 -w tcpstealth_close.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_stealth.py
+```
+
 ![](imgs/tcp_stealth_close_pcap.png)   
-![](imgs/tcp_stealth_close_py.png)
+![](imgs/tcp_stealth_close_py.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong>
+
+```bash
+#在被攻击主机上调试防火墙规则,使端口状态转变为过滤状态
+iptables -A INPUT -p tcp --dport 8000 -j REJECT
+#被攻击这主机上开启抓包
+tcpdump -i eth0 -w stealth_filter_python.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_stealth.py
+```
+
+![](imgs/tcp_stealth_filter_pcap.png)   
+![](imgs/tcp_stealth_filter_py.png)  
 
 * 实验代码：
 
@@ -102,18 +127,27 @@ elif(stealth_scan_resp.haslayer(ICMP)):
 ```bash
 nmap -sS 172.16.111.102
 ```
+<strong>`开放` 状态：</strong>  
+
 ![](imgs/tcp_stealth_open_nmap.png)  
+<strong>`关闭` 状态：</strong>  
+
 ![](imgs/tcp_stealth_close_nmap.png)  
+<strong>`过滤` 状态：</strong>  
+(ps:后期完成的filter状态，用的是172.16.111.115主机)  
+![](imgs/tcp_stealth_filter_nmap.png)  
+
 
 -----
 
 #### TCP Xmax scan
 * 扫描方法原理：在 XMAS 扫描中，将设置了 PSH、FIN 和 URG 标志的 TCP 数据包以及要连接到的端口发送到服务器。如果端口处于打开状态，则服务器将没有响应。如果服务器使用 TCP 数据包内设置的 RST 标志进行响应，则服务器上的端口将关闭。如果服务器使用 ICMP 错误类型 3 和 ICMP 代码 1、2、3、9、10 或 13 的 ICMP 数据包进行响应，则将筛选端口，并且无法从响应中推断出端口是打开还是关闭。原理图如下：  
-![](imgs/tcp_xmas_open.png)
-![](imgs/tcp_xmas_close.png)
-![](imgs/tcp_xmas_filtered.png)
-* 实验抓包结果（包括被测试IP的端口状态模拟方法）：  
-<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>  
+![](imgs/tcp_xmas_open.png)  
+![](imgs/tcp_xmas_close.png)  
+![](imgs/tcp_xmas_filtered.png)  
+* 实验抓包结果（包括被测试IP的端口状态模拟方法）：
+
+<strong>指定端口 `开放`  状态模拟：</strong>  
 
 ```bash
 #在被攻击主机上开启端口,默认开放的是8000端口
@@ -126,13 +160,16 @@ tcpdump -i eth0 -w xmas.pcap
 python tcp_xmas_scan.py
 ```
 
-观察抓到的包：
+观察抓到的包：  
 ![](imgs/tcp_xmas_open&filtered_pcap.png)  
-观察执行过程：
+观察执行过程：  
 ![](imgs/tcp_xmas_open&filtered_py.png)  
-以上说明端口为 `开放` | `过滤` | `关闭` 状态。
-<strong>指定端口 `关闭` 状态模拟：</strong> 
-默认情况下8000端口处于未打开状态，这时进行以上两种操作，可以得到8000端口此时的状态：
+
+以上说明端口可能为 `开放`  状态，根据代码的编写规则，也有可能是 `关闭` ，`过滤`  状态。
+
+<strong>指定端口 `关闭` 状态模拟：</strong>  
+
+默认情况下8000端口处于未打开状态： 
 
 ```bash
 #在被攻击者主机上抓包
@@ -140,9 +177,24 @@ tcpdump -i eth0 -w xmas_close.pcap
 
 #在攻击者主机上执行发包命令
 python tcp_xmas_scan.py
+```  
+![](imgs/tcp_xmas_close_py_wireshark.png)  
+![](imgs/tcp_xmas_close_py.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong>
+
+```bash
+#在被攻击主机上调试防火墙规则,使端口状态转变为过滤状态
+iptables -A INPUT -p tcp --dport 8000 -j REJECT
+#被攻击这主机上开启抓包
+tcpdump -i eth0 -w xams_filter_python.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_xmas_scan.py
 ```
-![](imgs/tcp_xmas_close_py_wireshark.png)
-![](imgs/tcp_xmas_close_py.png)
+
+![](imgs/tcp_xmas_filter_pcap.png)   
+![](imgs/tcp_xmas_filter_py.png)  
 
 * 实验代码：
 
@@ -169,23 +221,37 @@ elif(xmas_scan_resp.haslayer(TCP)):
 
 ```
 * nmap复刻：
-```python
+```bash
+#在受害者主机上进行状态模拟
+#开放
+python3 -m http.server 
+#开启过滤
+iptables -A -INPUT -p tcp --dport 8000 -j REJECT
+#关闭过滤
+iptables -D -INPUT -p tcp --dport 8000 -j REJECT
+
 nmap -sX 172.16.111.102
 ```
-<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>
-![](imgs/tcp_xmas_open&filtered_nmap.png)
-<strong>指定端口 `关闭` 状态模拟：</strong> 
+<strong>指定端口 `开放` 状态模拟：</strong>  
+
+![](imgs/tcp_xmas_open&filtered_nmap.png)  
+<strong>指定端口 `关闭` 状态模拟：</strong>  
+
 ![](imgs/tcp_xmas_close_nmap.png)  
+<strong>指定端口 `过滤` 状态模拟：</strong>  
+(ps:后期完成的filter状态，用的是172.16.111.115主机)
+![](imgs/tcp_xmas_filter_nmap.png)    
 
 ----- 
 
 #### TCP Fin scan
 * 扫描方法原理：FIN 扫描利用 TCP 数据包内的 FIN 标志以及要在服务器上连接的端口号。原理图如下：  
-![](imgs/tcp_fin_open_principle.png)
-![](imgs/tcp_fin_closed_principle.png)
-![](imgs/tcp_fin_principle.png)
+![](imgs/tcp_fin_open_principle.png)  
+![](imgs/tcp_fin_closed_principle.png)  
+![](imgs/tcp_fin_principle.png)  
 * 实验抓包结果（包括被测试IP的端口状态模拟方法）：  
-<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>  
+
+<strong>指定端口 `开放` 状态模拟：</strong>   
 
 ```bash
 #在被攻击主机上开启端口,默认开放的是8000端口
@@ -198,23 +264,39 @@ tcpdump -i eth0 -w fin.pcap
 python tcp_fin_scan.py
 ```
 
-观察抓到的包：
+观察抓到的包：  
 ![](imgs/tcp_fin_open&filtered_pcap.png)  
-观察执行过程：
+观察执行过程：  
 ![](imgs/tcp_fin_open_py.png)  
-以上说明端口为 `开放` | `过滤` | `关闭` 状态。
-<strong>指定端口 `关闭` 状态模拟：</strong> 
-默认情况下8000端口处于未打开状态，这时进行以上两种操作，可以得到8000端口此时的状态：
+以上说明端口可能为 `开放` | `过滤` 状态，而实际上是 `开放` 状态。  
+
+<strong>指定端口 `关闭` 状态模拟：</strong>   
+默认情况下8000端口处于未打开状态。  
 
 ```bash
 #在被攻击者主机上抓包
-tcpdump -i eth0 -w fin_close.pcap
+tcpdump -i eth0 -w tcpfin.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_fin_scan.py
+```  
+![](imgs/tcp_fin_closed_pcap.png)  
+![](imgs/tcp_fin_closed_py.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong>
+
+```bash
+#在被攻击主机上调试防火墙规则,使端口状态转变为过滤状态
+iptables -A INPUT -p tcp --dport 8000 -j REJECT
+#被攻击这主机上开启抓包
+tcpdump -i eth0 -w fin_filter_python.pcap
 
 #在攻击者主机上执行发包命令
 python tcp_fin_scan.py
 ```
-![](imgs/tcp_fin_closed_pcap.png)
-![](imgs/tcp_fin_closed_py.png)
+
+![](imgs/tcp_fin_filter_pcap.png)   
+![](imgs/tcp_fin_filter_py.png)  
 
 * 实验代码：
 
@@ -243,21 +325,30 @@ elif(fin_scan_resp.haslayer(ICMP)):
 ```python
 nmap -sF 172.16.111.102
 ```
-<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>
-![](imgs/tcp_fin_open&filtered_nmap.png)
+<strong>指定端口 `开放` 状态模拟：</strong>
+
+![](imgs/tcp_fin_open&filtered_nmap.png)  
+
 <strong>指定端口 `关闭` 状态模拟：</strong> 
+
 ![](imgs/tcp_fin_closed_nmap.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong>  
+
+(ps:后期完成的filter状态，用的是172.16.111.115主机)  
+
+![](imgs/tcp_fin_filter_nmap.png)  
 
 -----
 
 
 #### TCP Null scan
-* 扫描方法原理：在空扫描中，TCP 数据包内未设置任何标志。TCP 数据包仅与端口号一起发送到服务器。如果服务器未向 NULL 扫描数据包发送任何响应，则该特定端口处于打开状态。如果服务器使用 TCP 数据包中设置的 RST 标志进行响应，则服务器上的端口将关闭。原理图如下：  
-![](imgs/tcp_null_open_principle.png)
-![](imgs/tcp_null_closed_principle.png)
-![](imgs/tcp_null_filtered_principle.png)
+* 扫描方法原理：在空扫描中，TCP 数据包内未设置任何标志。TCP 数据包仅与端口号一起发送到服务器。如果服务器未向 NULL 扫描数据包发送任何响应，则该特定端口处于打开状态。如果服务器使用 TCP 数据包中设置的 RST 标志进行响应，则服务器上的端口将关闭。原理图如下：   
+![](imgs/tcp_null_open_principle.png)  
+![](imgs/tcp_null_closed_principle.png)  
+![](imgs/tcp_null_filtered_principle.png)  
 * 实验抓包结果（包括被测试IP的端口状态模拟方法）：  
-<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>  
+<strong>指定端口 `开放` 状态模拟：</strong>  
 
 ```bash
 #在被攻击主机上开启端口,默认开放的是8000端口
@@ -271,13 +362,13 @@ python tcp_null_scan.py
 ```
 
 观察抓到的包：
-![](imgs/tcp_null_open_pcap.png) 
+![](imgs/tcp_null_open_pcap.png)  
 
 观察执行过程：
-![](imgs/tcp_null_open_py.png)  
-以上说明端口可能为 `开放` | `过滤` | `关闭` 状态。
-<strong>指定端口 `关闭` 状态模拟：</strong> 
-默认情况下8000端口处于未打开状态，这时进行以上两种操作，可以得到8000端口此时的状态：
+![](imgs/tcp_null_open_py.png)   
+以上说明端口可能为 `开放` | `过滤` 状态。
+<strong>指定端口 `关闭` 状态模拟：</strong>   
+默认情况下8000端口处于未打开状态。
 
 ```bash
 #在被攻击者主机上抓包
@@ -286,8 +377,23 @@ tcpdump -i eth0 -w null_close.pcap
 #在攻击者主机上执行发包命令
 python tcp_null_scan.py
 ```
-![](imgs/tcp_null_close_pcap.png)
-![](imgs/tcp_null_close_py.png)
+![](imgs/tcp_null_close_pcap.png)  
+![](imgs/tcp_null_close_py.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong>
+
+```bash
+#在被攻击主机上调试防火墙规则,使端口状态转变为过滤状态
+iptables -A INPUT -p tcp --dport 8000 -j REJECT
+#被攻击这主机上开启抓包
+tcpdump -i eth0 -w null_filter_python.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_null_scan.py
+```
+
+![](imgs/tcp_null_filter_pcap.png)   
+![](imgs/tcp_null_filter_py.png)  
 
 * 实验代码：
 
@@ -315,17 +421,25 @@ elif(null_scan_resp.haslayer(ICMP)):
 ```python
 nmap -sN 172.16.111.102
 ```
-<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>
-![](imgs/tcp_null_open_nmap.png)
-<strong>指定端口 `关闭` 状态模拟：</strong> 
+<strong>指定端口 `开放` 状态模拟：</strong>  
+
+![](imgs/tcp_null_open_nmap.png)  
+<strong>指定端口 `关闭` 状态模拟：</strong>   
+
 ![](imgs/tcp_null_closed_nmao.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong>   
+
+(ps:后期完成的filter状态，用的是172.16.111.115主机)  
+
+![](imgs/tcp_null_filter_nmap.png)  
 
 -----
 #### UDP scan
 * 扫描方法原理：FIN 扫描利用 TCP 数据包内的 FIN 标志以及要在服务器上连接的端口号。原理图如下：  
-![](imgs/udp_open_principle.png)
-![](imgs/udp_close_principle.png)
-![](imgs/udp_filter_principle.png)
+![](imgs/udp_open_principle.png)  
+![](imgs/udp_close_principle.png)  
+![](imgs/udp_filter_principle.png)  
 * 实验抓包结果（包括被测试IP的端口状态模拟方法），不小心误删了原有的被攻击者主机，重新注册了ip为172.16.111.115的主机：  
 <strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>  
 
@@ -341,11 +455,11 @@ python udp_scan.py -t 172.16.111.115 -p 9999
 ```
 
 观察抓到的包：
-![](imgs/udp_open_pcap2.png) 
+![](imgs/udp_open_pcap2.png)  
 
 观察执行过程：
 ![](imgs/udp_open_py.png)  
-以上说明端口可能为 `开放` | `过滤` | `关闭` 状态。
+以上说明端口可能为 `开放` | `过滤` 状态。
 <strong>指定端口 `关闭` 状态模拟：</strong> 
 
 ```bash
@@ -355,8 +469,8 @@ tcpdump -i eth0 -w udp_open.pcap
 #在攻击者主机上执行发包命令
 python udp_scan.py -t 172.16.111.115 -p 9999
 ```
-![](imgs/udp_close_pcap.png)
-![](imgs/udp_close_py.png)
+![](imgs/udp_close_pcap.png)  
+![](imgs/udp_close_py.png)  
 
 * 实验代码：
 
@@ -400,8 +514,9 @@ nmap -sU 172.16.111.115
 ![](imgs/tcp_null_open_nmap.png)
 <strong>指定端口 `关闭` 状态模拟：</strong> 
 ![](imgs/tcp_null_closed_nmao.png)   -->
-不知道为什么，nmap发包最终返回的都是关闭状态：
-![](imgs/udp_close_nmap_py.png)
+不知道为什么，不带payload的nmap发包最终返回的都是关闭状态：
+![](imgs/udp_close_nmap_py.png)  
+
 
 ## 参考资料
 [tcpdump抓包命令详解](https://zhuanlan.zhihu.com/p/96143656)  
