@@ -19,11 +19,11 @@
 
 ## 实验要求
 - [x] 禁止探测互联网上的 IP ，严格遵守网络安全相关法律法规。
-- [ ] 完成以下扫描技术的编程实现
+- [x] 完成以下扫描技术的编程实现
     * TCP connect scan / TCP stealth scan
     * TCP Xmas scan / TCP fin scan / TCP null scan
     * UDP scan
-- [ ] 上述每种扫描技术的实现测试均需要测试端口状态为：`开放`、`关闭`和`过滤`状态时的程序执行结构。
+- [x] 上述每种扫描技术的实现测试均需要测试端口状态为：`开放`、`关闭`和`过滤`状态时的程序执行结构。
 - [x] 提供每一次扫描测试的抓包结果并分析与课本中的扫描方法原理是否相符？如果不同，试分析原因。
 - [x] 在实验报告中详细说明实验的网络环境拓扑、被测试IP的端口状态是如何被模拟的。
 - [x] 复刻`nmap`的上述扫描技术实现的命令行参数开关。
@@ -35,8 +35,85 @@
 ![](imgs/tcp_connect_principle.png)      
 ![](imgs/tcp_stealth_close_principle.png)  
 * 实验抓包结果（包括被测试IP的端口状态模拟方法）：
+
+<strong>指定端口 `开放` 状态模拟：</strong>  
+
+```bash
+#在被攻击主机上开启端口,默认开放的是8000端口
+python3 -m http.server
+
+#在被攻击主机上开启抓包
+tcpdump -i eth0 -w tcp_connect_python.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_connect_scan.py
+```
+
+观察抓到的包：  
+![](imgs/tcp_connect_open_pcap.png)  
+
+
+<strong>指定端口 `关闭` 状态模拟：</strong>  
+默认情况下8000端口处于未打开状态：
+```bash
+#在被攻击主机上开启抓包
+tcpdump -i eth0 -w tcp_connect_close.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_connect_scan.py
+```
+
+![](imgs/tcp_connect_close_pcap.png)   
+![](imgs/tcp_connect_close_py.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong>
+
+```bash
+#在被攻击主机上调试防火墙规则,使端口状态转变为过滤状态
+iptables -A INPUT -p tcp --dport 8000 -j DROP
+#被攻击这主机上开启抓包
+tcpdump -i eth0 -w tcp_connect_python.pcap
+
+#在攻击者主机上执行发包命令
+python tcp_stealth.py
+```
+
+![](imgs/tcp_connect_filter_pcap.png)   
+![](imgs/tcp_connect_filter_py.png)  
+
+从抓包结果看，与课本中的扫描方法原理相符。  
 * 实验代码：
+
+```python
+import socket               # 导入 socket 模块
+ 
+s = socket.socket()         # 创建 socket 对象
+host = "172.16.111.115" # 获取本地主机名
+port = 8000            # 设置端口号
+ 
+s.connect((host, port))
+s.close()
+```
+
 * nmap复刻：
+```bash
+nmap -sT 172.16.111.115
+
+#状态模拟在被攻击者主机上实现
+#开放状态
+python3 -m http.server
+#过滤状态
+iptables -A INPUT -p tcp --dport 8000 -j DROP
+```
+<strong>`开放` 状态：</strong>  
+
+![](imgs/tcp_connect_open_nmap.png)  
+<strong>`关闭` 状态：</strong>  
+
+![](imgs/tcp_connect_close_nmap.png)  
+<strong>`过滤` 状态：</strong>  
+(ps:后期完成的filter状态，用的是172.16.111.115主机)  
+![](imgs/tcp_connect_filter_nmap.png)  
 
 -----
  
@@ -95,6 +172,8 @@ python tcp_stealth.py
 
 ![](imgs/tcp_stealth_filter_pcap.png)   
 ![](imgs/tcp_stealth_filter_py.png)  
+
+从抓包结果看，与课本中的扫描方法原理相符。 
 
 * 实验代码：
 
@@ -196,6 +275,7 @@ python tcp_xmas_scan.py
 ![](imgs/tcp_xmas_filter_pcap.png)   
 ![](imgs/tcp_xmas_filter_py.png)  
 
+从抓包结果看，与课本中的扫描方法原理相符。 
 * 实验代码：
 
 ```python
@@ -298,6 +378,8 @@ python tcp_fin_scan.py
 ![](imgs/tcp_fin_filter_pcap.png)   
 ![](imgs/tcp_fin_filter_py.png)  
 
+从抓包结果看，与课本中的扫描方法原理相符。 
+
 * 实验代码：
 
 ```python
@@ -395,6 +477,8 @@ python tcp_null_scan.py
 ![](imgs/tcp_null_filter_pcap.png)   
 ![](imgs/tcp_null_filter_py.png)  
 
+从抓包结果看，与课本中的扫描方法原理相符。 
+
 * 实验代码：
 
 ```python
@@ -441,7 +525,7 @@ nmap -sN 172.16.111.102
 ![](imgs/udp_close_principle.png)  
 ![](imgs/udp_filter_principle.png)  
 * 实验抓包结果（包括被测试IP的端口状态模拟方法），不小心误删了原有的被攻击者主机，重新注册了ip为172.16.111.115的主机：  
-<strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>  
+<strong>指定端口 `开放` 状态模拟：</strong>  
 
 ```bash
 #在被攻击主机上开启端口9999
@@ -464,13 +548,29 @@ python udp_scan.py -t 172.16.111.115 -p 9999
 
 ```bash
 #在被攻击者主机上抓包
-tcpdump -i eth0 -w udp_open.pcap
+tcpdump -i eth0 -w udp_close.pcap
 
 #在攻击者主机上执行发包命令
 python udp_scan.py -t 172.16.111.115 -p 9999
 ```
 ![](imgs/udp_close_pcap.png)  
 ![](imgs/udp_close_py.png)  
+
+<strong>指定端口 `过滤` 状态模拟：</strong> 
+
+```bash
+#在被攻击者主机上模拟过滤状态
+iptables -A INPUT -p udp --dport 8000 -j REJECT -reject-with icmp-net-prohibited
+#在被攻击者主机上抓包
+tcpdump -i eth0 -w udp_filter.pcap
+
+#在攻击者主机上执行发包命令
+python udp_scan.py -t 172.16.111.115 -p 8000
+```
+![](imgs/udp_filter_pcap.png)  
+![](imgs/udp_filter_py.png) 
+
+从抓包结果看，与课本中的扫描方法原理相符。 
 
 * 实验代码：
 
@@ -488,7 +588,10 @@ def udp_scan(target, ports):
 			print_ports(port, "Open / filtered")
 		else:
 			if pkt.haslayer(ICMP):
-				print_ports(port, "Closed")
+				if pkt[ICMP].code == 3:
+					print_ports(port, "Closed")
+				else:
+					print(port,"filtered")
 			elif pkt.haslayer(UDP):
 				print_ports(port, "Open / filtered")
 			else:
@@ -507,17 +610,42 @@ else:
 udp_scan(target,ports)
 ```
 * nmap复刻：
-```python
-nmap -sU 172.16.111.115
+```bash
+nmap -sU 172.16.111.115 -p 9999
+
+#在被攻击者主机上模拟
+#开放状态
+nc -l -u -p 9999
+
+#过滤状态
+iptables -A INPUT -p udp --dport 8000 -j REJECT -reject-with icmp-net-prohibited
+
 ```
-<!-- <strong>指定端口 `开放` | `过滤` | `关闭` 状态模拟：</strong>
-![](imgs/tcp_null_open_nmap.png)
-<strong>指定端口 `关闭` 状态模拟：</strong> 
-![](imgs/tcp_null_closed_nmao.png)   -->
-不知道为什么，不带payload的nmap发包最终返回的都是关闭状态：
+
+不知道为什么，不带payload的nmap发包最终返回的都是 `关闭` 状态，所以不能模拟 `开放` 状态：
+
+<strong>指定端口 `关闭` 状态模拟：</strong>   
 ![](imgs/udp_close_nmap_py.png)  
 
+<strong>指定端口 `过滤` 状态模拟：</strong> 
+(ps:后期完成的filter状态，用的是172.16.111.115主机)
+![](imgs/udp_filter_nmap.png)
 
+----
+## 总结
+```bash
+#查看防火墙规则
+iptables -L
+#添加防火墙规则
+iptables -A INPUT -p tcp --dport 8000 -j REJECT
+#删除防火墙规则，REJECT表示拒绝访问，会返回ICMP包；DROP表示丢包
+iptables -D INPUT -p tcp --dport 8000 -j REJECT
+#设置REJECT原因
+iptables -A INPUT -p tcp --dport 8000 -j REJECT -reject-with icmp-net-prohibited
+```
+<strong>在模拟不同的状态时要记得将上一条模拟状态的规则在iptables表中删除掉，否则原有规则会覆盖下一条输入规则,只需要将参数-A改成-D即可删除添加规则，记得使用命令 `iptables -L` 查看是否成功删除</strong>
+
+----
 ## 参考资料
 [tcpdump抓包命令详解](https://zhuanlan.zhihu.com/p/96143656)  
 [Port scanning using Scapy](https://resources.infosecinstitute.com/topic/port-scanning-using-scapy/)  
