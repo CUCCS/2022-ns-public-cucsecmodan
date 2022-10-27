@@ -141,7 +141,7 @@ python tcp_stealth.py
 
 观察抓到的包：  
 ![](imgs/tcp_stealth_open_pcap.png)  
-观察执行过程： 
+观察执行过程：  
 ![](imgs/tcp_stealth_open_py.png)  
 以上说明端口为 `开放` 状态。
 
@@ -633,17 +633,19 @@ iptables -A INPUT -p udp --dport 8000 -j REJECT -reject-with icmp-net-prohibited
 
 ----
 ## 总结
+* 一些防火墙规则的设定：
 ```bash
 #查看防火墙规则
 iptables -L
 #添加防火墙规则
 iptables -A INPUT -p tcp --dport 8000 -j REJECT
-#删除防火墙规则，REJECT表示拒绝访问，会返回ICMP包；DROP表示丢包
+#删除防火墙规则，REJECT表示拒绝访问，会返回ICMP包；DROP表示丢包，什么都不会返回
 iptables -D INPUT -p tcp --dport 8000 -j REJECT
 #设置REJECT原因
 iptables -A INPUT -p tcp --dport 8000 -j REJECT -reject-with icmp-net-prohibited
 ```
 <strong>在模拟不同的状态时要记得将上一条模拟状态的规则在iptables表中删除掉，否则原有规则会覆盖下一条输入规则,只需要将参数-A改成-D即可删除添加规则，记得使用命令 `iptables -L` 查看是否成功删除</strong>
+* nmap在测试udp扫描时，由于没有自带的payload,不能检测 `开放` 状态。
 
 ----
 ## 参考资料
